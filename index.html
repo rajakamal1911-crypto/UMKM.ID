@@ -227,6 +227,55 @@ aside>div:last-child{padding-top:18px!important}
  .stat{min-height:125px;padding:18px!important}.stat>b{font-size:24px}
 }
 @media(max-width:460px){.g4{grid-template-columns:1fr}.stat{min-height:110px}}
+
+/* UMKMKU — Bahan & Produk page polish */
+#t-inv>.grid{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  align-items:start;
+}
+#t-inv .grid>div{min-width:0}
+#t-inv #f-rm>.row{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+#t-inv #f-pr>.row{
+  grid-template-columns:1fr 1fr 1.15fr;
+}
+#t-inv #f-pr>.row>div{min-width:0}
+#t-inv .card.tw{
+  overflow-x:auto;
+}
+#t-inv .card.tw table{
+  min-width:0;
+  table-layout:auto;
+}
+#t-inv .card.tw td:last-child,
+#t-inv .card.tw th:last-child{
+  width:1%;
+}
+#t-inv .bomr{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 92px auto;
+  align-items:center;
+  gap:8px;
+  padding:8px;
+}
+#t-inv .bomr input{width:100%;min-width:0}
+#t-inv .bomr select{min-width:0}
+#t-inv .bomr .btn{white-space:nowrap}
+#t-inv .card.tw td,
+#t-inv .card.tw th{white-space:nowrap}
+@media(max-width:1100px){
+  #t-inv>.grid{grid-template-columns:1fr}
+  #t-inv #f-pr>.row{grid-template-columns:1fr 1fr}
+  #t-inv #f-pr>.row>div:last-child{grid-column:1/-1}
+}
+@media(max-width:640px){
+  #t-inv #f-rm>.row,
+  #t-inv #f-pr>.row{grid-template-columns:1fr}
+  #t-inv #f-pr>.row>div:last-child{grid-column:auto}
+  #t-inv .bomr{grid-template-columns:minmax(0,1fr) 78px auto}
+}
+
 </style>
 </head>
 <body>
