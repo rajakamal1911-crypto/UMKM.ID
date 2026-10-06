@@ -459,12 +459,37 @@ $('o-run').onclick=()=>{const rm=JSON.parse(JSON.stringify(D.rm)),list=Object.en
 
 /* Laporan */
 function months(){return [...new Set(D.tx.map(t=>ym(t.date)))].sort().reverse()}
-function repData(){const m=$('r-m').value,agg={};
- D.tx.filter(t=>!m||ym(t.date)===m).forEach(t=>{const a=agg[t.pid]||(agg[t.pid]={name:t.name,q:0,rev:0,cost:0});a.q+=t.qty;a.rev+=t.rev;a.cost+=t.cost});
+function reportRange(v){
+ const now=new Date(),start=new Date(0),end=new Date(now);
+ start.setHours(0,0,0,0); end.setHours(23,59,59,999);
+ if(v==='today') return [start,end];
+ if(v==='7d'){start.setDate(start.getDate()-6);return [start,end]}
+ if(v==='30d'){start.setDate(start.getDate()-29);return [start,end]}
+ if(v==='thismonth'){start.setDate(1);return [start,end]}
+ if(v==='lastmonth'){
+   start.setDate(1);start.setMonth(start.getMonth()-1);
+   end.setDate(0);end.setHours(23,59,59,999);return [start,end]
+ }
+ if(v==='thisyear'){start.setMonth(0,1);return [start,end]}
+ if(/^month:\d{4}-\d{2}$/.test(v)){
+   const parts=v.slice(6).split('-').map(Number),y=parts[0],m=parts[1];
+   return [new Date(y,m-1,1,0,0,0,0),new Date(y,m,0,23,59,59,999)]
+ }
+ return null
+}
+function repData(){const v=$('r-m').value,range=reportRange(v),agg={};
+ D.tx.filter(t=>{
+   if(!range)return true;
+   const d=new Date(t.date);return d>=range[0]&&d<=range[1]
+ }).forEach(t=>{const a=agg[t.pid]||(agg[t.pid]={name:t.name,q:0,rev:0,cost:0});a.q+=t.qty;a.rev+=t.rev;a.cost+=t.cost});
  return Object.values(agg).sort((a,b)=>(b.rev-b.cost)-(a.rev-a.cost))}
 $('r-m').onchange=renderRep;
 function renderRep(){const ms=months(),cur=$('r-m').value;
- $('r-m').innerHTML='<option value="">Semua waktu</option>'+ms.map(m=>`<option value="${m}" ${m===cur?'selected':''}>${mlabel(m)}</option>`).join('');
+ const fixed='<option value="">Semua waktu</option><option value="today">Hari ini</option><option value="7d">7 hari terakhir</option><option value="30d">30 hari terakhir</option><option value="thismonth">Bulan ini</option><option value="lastmonth">Bulan lalu</option><option value="thisyear">Tahun ini</option>';
+ const history=ms.map(m=>'<option value="month:'+m+'" '+(cur==='month:'+m?'selected':'')+'>'+mlabel(m)+'</option>').join('');
+ $('r-m').innerHTML=fixed+history;
+ if(!cur)$('r-m').value='';
+ else if(['today','7d','30d','thismonth','lastmonth','thisyear'].includes(cur))$('r-m').value=cur;
  const a=repData(),T=a.reduce((s,x)=>({q:s.q+x.q,rev:s.rev+x.rev,cost:s.cost+x.cost}),{q:0,rev:0,cost:0});
  $('r-t').innerHTML=a.length?a.map(x=>`<tr><td>${esc(x.name)}</td><td class="r">${x.q}</td><td class="r">${rp(x.rev)}</td><td class="r">${rp(x.cost)}</td><td class="r ${sg(x.rev-x.cost)}">${rp(x.rev-x.cost)}</td><td class="r">${pct((x.rev-x.cost)/x.rev*100)}</td></tr>`).join(''):`<tr><td colspan="6">${empty('Belum ada transaksi.')}</td></tr>`;
  $('r-f').innerHTML=a.length?`<tr><td><b>Total</b></td><td class="r"><b>${T.q}</b></td><td class="r"><b>${rp(T.rev)}</b></td><td class="r"><b>${rp(T.cost)}</b></td><td class="r ${sg(T.rev-T.cost)}"><b>${rp(T.rev-T.cost)}</b></td><td class="r"><b>${pct((T.rev-T.cost)/T.rev*100)}</b></td></tr>`:''}
