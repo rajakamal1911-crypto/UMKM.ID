@@ -227,6 +227,9 @@ aside>div:last-child{padding-top:18px!important}
  .stat{min-height:125px;padding:18px!important}.stat>b{font-size:24px}
 }
 @media(max-width:460px){.g4{grid-template-columns:1fr}.stat{min-height:110px}}
+
+/* Fix chart empty-state overlay: hidden attribute must override .chart-empty display:flex */
+.chart-empty[hidden]{display:none!important}
 </style>
 </head>
 <body>
