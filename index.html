@@ -565,7 +565,22 @@ function renderProdHistory(){
  const el=$('p-prod-history');if(!el)return;
  const pid=$('p-prod')?.value;
  const rows=(D.prod||[]).filter(x=>!pid||x.pid===pid).slice(0,8);
- el.innerHTML=rows.length?`<div class="mut" style="margin-bottom:7px">Riwayat produksi</div><div class="tw"><table><thead><tr><th>Tanggal</th><th>Produk</th><th class="r">Qty</th><th class="r">HPP produksi</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${dt(x.date)}</td><td>${esc(x.name)}</td><td class="r">${x.qty} unit</td><td class="r">${rp(x.cost)}</td></tr>`).join('')}</tbody></table></div>`:empty('Belum ada produksi untuk produk ini.');
+ el.innerHTML=rows.length?`<div class="mut" style="margin-bottom:7px">Riwayat produksi</div><div class="tw"><table><thead><tr><th>Tanggal</th><th>Produk</th><th class="r">Qty</th><th class="r">HPP produksi</th><th class="r">Aksi</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${dt(x.date)}</td><td>${esc(x.name)}</td><td class="r">${x.qty} unit</td><td class="r">${rp(x.cost)}</td><td class="r"><button type="button" class="btn red sm p-prod-del" data-id="${x.id}">Hapus</button></td></tr>`).join('')}</tbody></table></div>`:empty('Belum ada produksi untuk produk ini.');
+}
+function deleteProduction(id){
+ const x=(D.prod||[]).find(t=>t.id===id);if(!x)return;
+ const p=D.pr[x.pid];
+ if(!p)return toast('Produk hasil produksi sudah tidak ditemukan.','e');
+ const qty=+x.qty||0;
+ if(qty<1)return toast('Jumlah produksi tidak valid.','e');
+ if((p.stock||0)<qty)return toast('Produksi tidak bisa dihapus: stok produk jadi saat ini kurang dari jumlah produksi. Sebagian hasil produksi kemungkinan sudah terjual.','e');
+ if(!confirm('Hapus produksi '+qty+' unit? Stok bahan akan dikembalikan dan stok produk jadi akan dikurangi.'))return;
+ for(const [k,n] of Object.entries(p.bom||{})){if(!D.rm[k])return toast('Bahan sudah dihapus. Produksi tidak dihapus agar stok tetap akurat.','e')}
+ for(const [k,n] of Object.entries(p.bom||{})){D.rm[k].stock=+(D.rm[k].stock+n*qty).toFixed(6)}
+ p.stock=+(p.stock-qty).toFixed(6);
+ D.prod=D.prod.filter(t=>t.id!==id);
+ save();render();$('p-prod').value=p.id;prodCalc();
+ toast('Produksi dihapus. Stok bahan dikembalikan dan stok produk jadi dikurangi.');
 }
 $('p-prod-calc').onclick=prodCalc;
 $('p-prod').onchange=prodCalc;
@@ -575,6 +590,7 @@ $('p-prod-result').onclick=e=>{
  if(!btn)return;
  if(btn.id==='p-prod-exec'){e.preventDefault();executeProduction()}
  if(btn.id==='p-prod-max'){e.preventDefault();const p=D.pr[$('p-prod').value];$('p-prod-qty').value=maxProd(p||{});prodCalc()}
+ if(btn.classList.contains('p-prod-del')){e.preventDefault();deleteProduction(btn.dataset.id)}
 };
 
 /* Pembelian */
