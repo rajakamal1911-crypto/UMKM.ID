@@ -557,7 +557,7 @@ function executeProduction(){
  }
  for(const [k,n] of Object.entries(p.bom))D.rm[k].stock=Math.max(0,+(D.rm[k].stock-n*want).toFixed(6));
  p.stock=+(p.stock||0)+want;
- D.prod.unshift({id:uid(),pid:id,name:p.name,qty:want,date:new Date().toISOString(),cost:hpp(p)*want});
+ D.prod.unshift({id:uid(),pid:id,name:p.name,qty:want,date:new Date().toISOString(),cost:hpp(p)*want,bom:JSON.parse(JSON.stringify(p.bom||{}))});
  save();render();$('p-prod').value=id;$('p-prod-qty').value=1;prodCalc();
  toast('Produksi '+want+' unit berhasil. Stok bahan berkurang, stok produk jadi bertambah.');
 }
@@ -569,14 +569,21 @@ function renderProdHistory(){
 }
 function deleteProduction(id){
  const x=(D.prod||[]).find(t=>t.id===id);if(!x)return;
- const p=D.pr[x.pid];
- if(!p)return toast('Produk hasil produksi sudah tidak ditemukan.','e');
+ let p=D.pr[x.pid];
+ /* Jika ID produk lama sudah tidak ada, cari produk aktif dengan nama yang sama. */
+ if(!p){
+  const hit=Object.entries(D.pr).find(([pid,v])=>String(v.name||'').trim().toLocaleLowerCase('id-ID')===String(x.name||'').trim().toLocaleLowerCase('id-ID'));
+  if(hit){x.pid=hit[0];p=hit[1]}
+ }
+ if(!p)return toast('Produk "'+(x.name||'')+'" sudah tidak ditemukan. Buat kembali produk dengan nama yang sama agar stok bisa dikembalikan.','e');
  const qty=+x.qty||0;
  if(qty<1)return toast('Jumlah produksi tidak valid.','e');
  if((p.stock||0)<qty)return toast('Produksi tidak bisa dihapus: stok produk jadi saat ini kurang dari jumlah produksi. Sebagian hasil produksi kemungkinan sudah terjual.','e');
+ const bom=x.bom&&Object.keys(x.bom).length?x.bom:(p.bom||{});
+ if(!Object.keys(bom).length)return toast('Komposisi produksi tidak ditemukan. Produksi tidak dihapus agar stok tetap aman.','e');
  if(!confirm('Hapus produksi '+qty+' unit? Stok bahan akan dikembalikan dan stok produk jadi akan dikurangi.'))return;
- for(const [k,n] of Object.entries(p.bom||{})){if(!D.rm[k])return toast('Bahan sudah dihapus. Produksi tidak dihapus agar stok tetap akurat.','e')}
- for(const [k,n] of Object.entries(p.bom||{})){D.rm[k].stock=+(D.rm[k].stock+n*qty).toFixed(6)}
+ for(const [k,n] of Object.entries(bom)){if(!D.rm[k])return toast('Bahan yang dipakai produksi sudah dihapus. Produksi tidak dihapus agar stok tetap akurat.','e')}
+ for(const [k,n] of Object.entries(bom)){D.rm[k].stock=+(D.rm[k].stock+n*qty).toFixed(6)}
  p.stock=+(p.stock-qty).toFixed(6);
  D.prod=D.prod.filter(t=>t.id!==id);
  save();render();$('p-prod').value=p.id;prodCalc();
