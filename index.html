@@ -310,9 +310,12 @@ aside>div:last-child{padding-top:18px!important}
 <div class="prod-box">
 <div class="prod-head"><div><strong>Produksi massal</strong><br><span>Hitung kebutuhan bahan dan jumlah maksimal yang bisa dibuat dari stok saat ini.</span></div></div>
 <div class="prod-form">
-<div><label>Produk</label><select id="p-prod"></select></div>
-<div><label>Jumlah mau diproduksi</label><input id="p-prod-qty" type="number" min="1" step="1" value="1"></div>
-<button type="button" class="btn" id="p-prod-calc">Hitung produksi</button>
+<div style="grid-column:1/-1">
+<label>Produk yang ingin diproduksi massal</label>
+<select id="p-prod"><option value="">Pilih produk yang ingin diproduksi</option></select>
+</div>
+<div><label>Jumlah yang ingin diproduksi</label><input id="p-prod-qty" type="number" min="1" step="1" value="1" disabled></div>
+<button type="button" class="btn" id="p-prod-calc" disabled>Pilih produk</button>
 </div>
 <div id="p-prod-result" style="margin-top:4px"></div>
 <div id="p-prod-history" style="margin-top:14px"></div>
@@ -514,10 +517,12 @@ function maxProd(p){
  return isFinite(mx)?Math.max(0,mx):0;
 }
 function prodCalc(){
- const sel=$('p-prod'),qty=$('p-prod-qty'),out=$('p-prod-result');
+ const sel=$('p-prod'),qty=$('p-prod-qty'),out=$('p-prod-result'),calc=$('p-prod-calc');
  if(!sel||!qty||!out)return;
  const p=D.pr[sel.value],want=Math.floor(+qty.value||0);
- if(!p||want<1){out.innerHTML=empty('Pilih produk dan masukkan jumlah produksi.');renderProdHistory();return}
+ qty.disabled=!p;
+ if(calc){calc.disabled=!p||want<1;calc.textContent=!p?'Pilih produk':'Hitung produksi'}
+ if(!p||want<1){out.innerHTML=empty('Pilih produk yang ingin diproduksi massal, lalu masukkan jumlahnya.');renderProdHistory();return}
  const mx=maxProd(p),ok=want<=mx;
  const rows=Object.entries(p.bom).map(([k,n])=>{
   const r=D.rm[k],need=n*want,stock=r?r.stock:0,short=Math.max(0,need-stock);
@@ -671,7 +676,7 @@ function render(){
  $('pr-t').innerHTML=prs.length?prs.map(([id,p])=>{const m=mgn(p),mx=maxProd(p);return`<tr><td>${esc(p.name)}</td><td class="r">${+(p.stock||0)} unit</td><td class="r">${rp(p.price)}</td><td class="r">${rp(hpp(p))}</td><td class="r ${m>=D.target?'ok':'bad'}">${pct(m)}</td><td class="r">${mx} unit</td><td><button class="btn alt sm" onclick="editPr('${id}')">Edit</button> <button class="btn red sm" onclick="delPr('${id}')">Hapus</button></td></tr>`}).join(''):`<tr><td colspan="7">${empty('Belum ada produk.')}</td></tr>`;$('pr-dl').innerHTML=prs.map(([id,p])=>`<option value="${esc(p.name)}"></option>`).join('');
  $('b-dl').innerHTML=rms.map(([id,r])=>`<option value="${esc(r.name)}">`).join('');const ku=$('b-u').value;buyUnits();if(ku&&[...$('b-u').options].some(o=>o.value===ku)){$('b-u').value=ku;buyConv()}if(!$('rm-u').options.length)fillUnit();
  const kp=$('s-p').value;$('s-p').innerHTML='<option value="">Pilih produk</option>'+prs.map(([id,p])=>`<option value="${id}">${esc(p.name)} - ${rp(p.price)} (stok ${+(p.stock||0)})</option>`).join('');$('s-p').value=kp;posCalc();
- const kpp=$('p-prod').value;$('p-prod').innerHTML='<option value="">Pilih produk</option>'+prs.map(([id,p])=>`<option value="${id}">${esc(p.name)} - ${rp(p.price)} (stok ${+(p.stock||0)})</option>`).join('');$('p-prod').value=prs.some(([id])=>id===kpp)?kpp:(prs[0]?.[0]||'');prodCalc();
+ const kpp=$('p-prod').value;$('p-prod').innerHTML='<option value="">Pilih produk yang ingin diproduksi</option>'+prs.map(([id,p])=>`<option value="${id}">${esc(p.name)} — stok jadi ${+(p.stock||0)} unit</option>`).join('');$('p-prod').value=prs.some(([id])=>id===kpp)?kpp:'';prodCalc();
  document.querySelectorAll('#bom select').forEach(s=>{const v=s.value;s.innerHTML='<option value="">Pilih bahan</option>'+rms.map(([id,r])=>`<option value="${id}">${esc(r.name)} (${esc(r.unit)})</option>`).join('');s.value=v});
  $('b-t2').innerHTML=D.buys.length?D.buys.slice(0,15).map(b=>`<tr><td>${dt(b.date)}</td><td>${esc(b.name)}</td><td class="r">${b.qty} ${esc(b.unit)}</td><td class="r">${rp(b.total)}</td></tr>`).join(''):`<tr><td colspan="4">${empty('Belum ada pembelian.')}</td></tr>`;
  $('s-t').innerHTML=D.tx.length?D.tx.slice(0,15).map(t=>`<tr><td>${dt(t.date)}</td><td>${esc(t.name)}</td><td class="r">${t.qty}</td><td class="r">${rp(t.rev)}</td><td><button class="btn red sm" onclick="voidTx('${t.id}')">Batal</button></td></tr>`).join(''):`<tr><td colspan="5">${empty('Belum ada transaksi.')}</td></tr>`;
