@@ -302,7 +302,7 @@ aside>div:last-child{padding-top:18px!important}
 <div>
 <div class="card"><h3>Produk &amp; komposisi</h3>
 <form id="f-pr"><input type="hidden" id="pr-id">
-<div class="row"><div><label>Nama produk</label><input id="pr-n" required></div><div><label>Harga jual</label><input id="pr-p" class="money" inputmode="decimal" placeholder="0" required></div>
+<div class="row"><div><label>Nama produk</label><input id="pr-n" list="pr-dl" autocomplete="off" placeholder="Ketik nama produk" required><datalist id="pr-dl"></datalist></div><div><label>Harga jual</label><input id="pr-p" class="money" inputmode="decimal" placeholder="0" required></div>
 <div><label>Biaya lain per unit (tenaga, kemasan, dll)</label><input id="pr-o" class="money" inputmode="decimal" value="0"></div></div>
 <label>Komposisi bahan per 1 unit</label><div id="bom"></div>
 <button type="button" class="btn alt sm" id="bom-add">+ Tambah bahan</button><br><br>
@@ -376,7 +376,23 @@ aside>div:last-child{padding-top:18px!important}
 const KEY='marginpro-v2';
 let D=load(),chart=null;
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.rm&&d.pr)return norm(d)}catch(e){}return{rm:{},pr:{},tx:[],buys:[],prod:[],target:30}}
-function norm(d){d.tx=d.tx||[];d.buys=d.buys||[];d.prod=d.prod||[];d.target=d.target>=0?Math.min(95,d.target):30;Object.values(d.pr||{}).forEach(p=>{p.stock=+p.stock||0});return d}
+function norm(d){
+ d.tx=d.tx||[];d.buys=d.buys||[];d.prod=d.prod||[];d.target=d.target>=0?Math.min(95,d.target):30;
+ const seen={};
+ Object.entries(d.pr||{}).forEach(([id,p])=>{
+  p.stock=+p.stock||0;
+  const key=String(p.name||'').trim().toLocaleLowerCase('id-ID');
+  if(!key)return;
+  if(seen[key]&&seen[key]!==id){
+   const keep=d.pr[seen[key]];
+   keep.stock=(+keep.stock||0)+(+p.stock||0);
+   delete d.pr[id];
+   Object.values(d.tx).forEach(t=>{if(t.pid===id)t.pid=seen[key]});
+   Object.values(d.prod).forEach(t=>{if(t.pid===id)t.pid=seen[key]});
+  }else seen[key]=id;
+ });
+ return d
+}
 function save(){D.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){toast('Gagal menyimpan ke browser','e')}mirror()}
 const $=i=>document.getElementById(i),rp=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID'),uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const parseMoney=s=>{s=String(s).trim();if(!s)return 0;
@@ -457,8 +473,29 @@ $('bom-add').onclick=()=>bomRow();
 $('f-pr').onsubmit=e=>{e.preventDefault();const bom={};
  document.querySelectorAll('#bom .bomr').forEach(r=>{const k=r.querySelector('select').value,q=+r.querySelector('input').value;if(k&&q>0)bom[k]=(bom[k]||0)+q});
  if(!Object.keys(bom).length)return toast('Tambahkan minimal 1 bahan','e');
- const id=$('pr-id').value||uid(),old=D.pr[id];D.pr[id]={name:$('pr-n').value.trim(),price:num($('pr-p')),oh:num($('pr-o')),bom,stock:old?+old.stock||0:0};
- save();resetPr();toast('Produk disimpan');render()};
+ const typedName=$('pr-n').value.trim(),editingId=$('pr-id').value;
+ const same=Object.entries(D.pr).find(([pid,p])=>String(p.name||'').trim().toLocaleLowerCase('id-ID')===typedName.toLocaleLowerCase('id-ID')&&pid!==editingId);
+ const id=editingId||same?.[0]||uid(),old=D.pr[id];
+ if(same&&same[0]!==id){const keep=D.pr[same[0]];keep.name=typedName;keep.price=num($('pr-p'));keep.oh=num($('pr-o'));keep.bom=bom;keep.stock=(+keep.stock||0)+(+old?.stock||0);delete D.pr[id]}
+ else D.pr[id]={name:typedName,price:num($('pr-p')),oh:num($('pr-o')),bom,stock:old?+old.stock||0:0};
+ save();resetPr();toast(same?'Produk yang sama digabung ke satu produk':'Produk disimpan');render()};
+function fillProductByName(){
+ const name=$('pr-n').value.trim().toLocaleLowerCase('id-ID');
+ const hit=Object.entries(D.pr).find(([id,p])=>String(p.name||'').trim().toLocaleLowerCase('id-ID')===name);
+ if(!hit)return;
+ const p=hit[1];
+ $('pr-p').value=fmtN(p.price);
+ $('pr-o').value=fmtN(p.oh||0);
+ $('bom').innerHTML='';
+ Object.entries(p.bom||{}).forEach(([k,q])=>bomRow(k,q));
+ $('pr-id').value=hit[0];
+ $('pr-x').hidden=false;
+ toast('Produk ditemukan: harga dan komposisi terisi otomatis');
+}
+$('pr-n').addEventListener('input',()=>{
+ const exact=Object.values(D.pr).some(p=>String(p.name||'').trim().toLocaleLowerCase('id-ID')===$('pr-n').value.trim().toLocaleLowerCase('id-ID'));
+ if(exact)fillProductByName();
+});
 function resetPr(){$('f-pr').reset();$('pr-id').value='';$('bom').innerHTML='';$('pr-x').hidden=true}
 $('pr-x').onclick=resetPr;
 function editPr(id){const p=D.pr[id];resetPr();$('pr-id').value=id;$('pr-n').value=p.name;$('pr-p').value=fmtN(p.price);$('pr-o').value=fmtN(p.oh||0);
@@ -631,7 +668,7 @@ $('x-demo').onclick=()=>{if(Object.keys(D.rm).length&&!confirm('Data contoh akan
 function render(){
  const rms=Object.entries(D.rm),prs=Object.entries(D.pr);
  $('rm-t').innerHTML=rms.length?rms.map(([id,r])=>`<tr><td>${esc(r.name)}</td><td class="r ${r.stock<=r.min?'bad':''}">${+r.stock.toFixed(2)} ${esc(r.unit)}${r.stock<=r.min?' ⚠':''}</td><td class="r">${rp(r.cost)}/${esc(r.unit)}</td><td><button class="btn alt sm" onclick="editRm('${id}')">Edit</button> <button class="btn red sm" onclick="delRm('${id}')">Hapus</button></td></tr>`).join(''):`<tr><td colspan="4">${empty('Belum ada bahan baku. Tambahkan di atas.')}</td></tr>`;
- $('pr-t').innerHTML=prs.length?prs.map(([id,p])=>{const m=mgn(p),mx=maxProd(p);return`<tr><td>${esc(p.name)}</td><td class="r">${+(p.stock||0)} unit</td><td class="r">${rp(p.price)}</td><td class="r">${rp(hpp(p))}</td><td class="r ${m>=D.target?'ok':'bad'}">${pct(m)}</td><td class="r">${mx} unit</td><td><button class="btn alt sm" onclick="editPr('${id}')">Edit</button> <button class="btn red sm" onclick="delPr('${id}')">Hapus</button></td></tr>`}).join(''):`<tr><td colspan="7">${empty('Belum ada produk.')}</td></tr>`;
+ $('pr-t').innerHTML=prs.length?prs.map(([id,p])=>{const m=mgn(p),mx=maxProd(p);return`<tr><td>${esc(p.name)}</td><td class="r">${+(p.stock||0)} unit</td><td class="r">${rp(p.price)}</td><td class="r">${rp(hpp(p))}</td><td class="r ${m>=D.target?'ok':'bad'}">${pct(m)}</td><td class="r">${mx} unit</td><td><button class="btn alt sm" onclick="editPr('${id}')">Edit</button> <button class="btn red sm" onclick="delPr('${id}')">Hapus</button></td></tr>`}).join(''):`<tr><td colspan="7">${empty('Belum ada produk.')}</td></tr>`;$('pr-dl').innerHTML=prs.map(([id,p])=>`<option value="${esc(p.name)}"></option>`).join('');
  $('b-dl').innerHTML=rms.map(([id,r])=>`<option value="${esc(r.name)}">`).join('');const ku=$('b-u').value;buyUnits();if(ku&&[...$('b-u').options].some(o=>o.value===ku)){$('b-u').value=ku;buyConv()}if(!$('rm-u').options.length)fillUnit();
  const kp=$('s-p').value;$('s-p').innerHTML='<option value="">Pilih produk</option>'+prs.map(([id,p])=>`<option value="${id}">${esc(p.name)} - ${rp(p.price)} (stok ${+(p.stock||0)})</option>`).join('');$('s-p').value=kp;posCalc();
  const kpp=$('p-prod').value;$('p-prod').innerHTML='<option value="">Pilih produk</option>'+prs.map(([id,p])=>`<option value="${id}">${esc(p.name)} - ${rp(p.price)} (stok ${+(p.stock||0)})</option>`).join('');$('p-prod').value=prs.some(([id])=>id===kpp)?kpp:(prs[0]?.[0]||'');prodCalc();
