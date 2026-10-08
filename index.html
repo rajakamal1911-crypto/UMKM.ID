@@ -495,7 +495,7 @@ function prodCalc(){
   <div class="prod-kpi"><span>Stok produk jadi</span><b>${+((p.stock||0).toFixed(2))} unit</b></div>
  </div>
  <div class="prod-status ${ok?'ok':'bad'}">${ok?'✓ Semua bahan cukup. Produksi '+want+' unit akan mengurangi stok bahan dan menambah stok produk jadi.':'✕ Bahan belum cukup untuk '+want+' unit'+(blocker?' — yang menghambat: '+esc(blocker.name):'')+'. Maksimal saat ini '+mx+' unit.'}
- ${ok?' <button type="button" class="btn" onclick="executeProduction()">Produksi '+want+' unit</button>':(mx>0?' <button type="button" class="btn alt sm" onclick="document.getElementById(\'p-prod-qty\').value='+mx+';prodCalc()">Gunakan maksimal '+mx+' unit</button>':'')}</div>
+ ${ok?' <button type="button" id="p-prod-exec" class="btn">Produksi '+want+' unit</button>':(mx>0?' <button type="button" id="p-prod-max" class="btn alt sm">Gunakan maksimal '+mx+' unit</button>':'')}</div>
  <div class="prod-table"><table><thead><tr><th>Bahan</th><th class="r">Per unit</th><th class="r">Butuh</th><th class="r">Stok bahan</th><th class="r">Kondisi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
  renderProdHistory();
 }
@@ -524,6 +524,12 @@ function renderProdHistory(){
 $('p-prod-calc').onclick=prodCalc;
 $('p-prod').onchange=prodCalc;
 $('p-prod-qty').oninput=prodCalc;
+$('p-prod-result').onclick=e=>{
+ const btn=e.target.closest('button');
+ if(!btn)return;
+ if(btn.id==='p-prod-exec'){e.preventDefault();executeProduction()}
+ if(btn.id==='p-prod-max'){e.preventDefault();const p=D.pr[$('p-prod').value];$('p-prod-qty').value=maxProd(p||{});prodCalc()}
+};
 
 /* Pembelian */
 $('f-buy').onsubmit=e=>{e.preventDefault();const nm=$('b-rm').value.trim(),q=+$('b-q').value,t=num($('b-t'));if(!nm)return toast('Isi nama bahan','e');
