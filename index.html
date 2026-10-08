@@ -368,7 +368,7 @@ aside>div:last-child{padding-top:18px!important}
 <script>
 const KEY='marginpro-v2';
 let D=load(),chart=null;
-function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.rm&&d.pr)return norm(d)}catch(e){}return{rm:{},pr:{},tx:[],buys:[],target:30}}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.rm&&d.pr)return norm(d)}catch(e){}return{rm:{},pr:{},tx:[],buys:[],prod:[],target:30}}
 function norm(d){d.tx=d.tx||[];d.buys=d.buys||[];d.prod=d.prod||[];d.target=d.target>=0?Math.min(95,d.target):30;Object.values(d.pr||{}).forEach(p=>{p.stock=+p.stock||0});return d}
 function save(){D.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){toast('Gagal menyimpan ke browser','e')}mirror()}
 const $=i=>document.getElementById(i),rp=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID'),uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
