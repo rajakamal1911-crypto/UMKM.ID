@@ -590,7 +590,12 @@ $('p-prod-result').onclick=e=>{
  if(!btn)return;
  if(btn.id==='p-prod-exec'){e.preventDefault();executeProduction()}
  if(btn.id==='p-prod-max'){e.preventDefault();const p=D.pr[$('p-prod').value];$('p-prod-qty').value=maxProd(p||{});prodCalc()}
- if(btn.classList.contains('p-prod-del')){e.preventDefault();deleteProduction(btn.dataset.id)}
+};
+$('p-prod-history').onclick=e=>{
+ const btn=e.target.closest('.p-prod-del');
+ if(!btn)return;
+ e.preventDefault();
+ deleteProduction(btn.dataset.id);
 };
 
 /* Pembelian */
