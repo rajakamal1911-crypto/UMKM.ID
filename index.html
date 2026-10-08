@@ -249,7 +249,14 @@ aside>div:last-child{padding-top:18px!important}
 .prod-status.bad{background:rgba(255,93,103,.08);border:1px solid rgba(255,93,103,.16);color:#ff9aa1}
 .prod-table{overflow-x:auto}.prod-table table{min-width:570px}.prod-table th,.prod-table td{padding:9px 10px}
 .prod-short{color:#ff858d;font-weight:700}.prod-enough{color:#5ee7c4;font-weight:700}
-@media(max-width:640px){.prod-form{grid-template-columns:1fr 1fr}.prod-form .btn{grid-column:1/-1}.prod-summary{grid-template-columns:1fr}}
+@media(max-width:640px){
+ .prod-form{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+ .prod-form>div,.prod-form>.btn{width:100%;min-width:0}
+ .prod-form label{margin-bottom:6px}
+ .prod-form input,.prod-form select{display:block;width:100%;min-height:50px}
+ .prod-form .btn{grid-column:auto;white-space:normal}
+ .prod-summary{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
