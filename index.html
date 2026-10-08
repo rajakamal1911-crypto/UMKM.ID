@@ -378,20 +378,24 @@ aside>div:last-child{padding-top:18px!important}
 <script>
 const KEY='marginpro-v2';
 let D=load(),chart=null;
-function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.rm&&d.pr)return norm(d)}catch(e){}return{rm:{},pr:{},tx:[],buys:[],prod:[],target:30}}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.rm&&d.pr){const n=norm(d);try{localStorage.setItem(KEY,JSON.stringify(n))}catch(e){}return n}}catch(e){}return{rm:{},pr:{},tx:[],buys:[],prod:[],target:30}}
 function norm(d){
  d.tx=d.tx||[];d.buys=d.buys||[];d.prod=d.prod||[];d.target=d.target>=0?Math.min(95,d.target):30;
  const seen={};
  Object.entries(d.pr||{}).forEach(([id,p])=>{
-  p.stock=+p.stock||0;
+  p.stock=+p.stock||0;p.bom=p.bom||{};
   const key=String(p.name||'').trim().toLocaleLowerCase('id-ID');
   if(!key)return;
   if(seen[key]&&seen[key]!==id){
    const keep=d.pr[seen[key]];
    keep.stock=(+keep.stock||0)+(+p.stock||0);
+   /* Jika produk utama belum punya resep/harga, ambil data dari duplikat agar migrasi tidak kehilangan informasi. */
+   if(!Object.keys(keep.bom).length&&Object.keys(p.bom).length)keep.bom=p.bom;
+   if(!(+keep.price)&&(+p.price))keep.price=p.price;
+   if(!(+keep.oh)&&(+p.oh))keep.oh=p.oh;
    delete d.pr[id];
-   Object.values(d.tx).forEach(t=>{if(t.pid===id)t.pid=seen[key]});
-   Object.values(d.prod).forEach(t=>{if(t.pid===id)t.pid=seen[key]});
+   d.tx.forEach(t=>{if(t.pid===id)t.pid=seen[key]});
+   d.prod.forEach(t=>{if(t.pid===id)t.pid=seen[key]});
   }else seen[key]=id;
  });
  return d
@@ -656,7 +660,7 @@ $('r-csv').onclick=()=>{const mg=x=>x.rev?((x.rev-x.cost)/x.rev*100).toFixed(1).
 $('x-bk').onclick=()=>dl('marginpro-backup.json',JSON.stringify(D),'application/json');
 $('x-rs').onclick=()=>$('x-f').click();
 $('x-f').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.rm||!d.pr)throw 0;D=norm(d);save();render();toast('Backup dipulihkan')}catch(x){toast('File backup tidak valid','e')}};r.readAsText(f);e.target.value=''};
-$('x-del').onclick=()=>{if(confirm('Hapus SEMUA data? Tidak bisa dibatalkan.')){D={rm:{},pr:{},tx:[],buys:[],target:30};save();render()}};
+$('x-del').onclick=()=>{if(confirm('Hapus SEMUA data? Tidak bisa dibatalkan.')){D={rm:{},pr:{},tx:[],buys:[],prod:[],target:30};save();render()}};
 $('x-demo').onclick=()=>{if(Object.keys(D.rm).length&&!confirm('Data contoh akan ditambahkan ke data yang ada. Lanjut?'))return;
  const a=uid(),b=uid(),c=uid(),d=uid();
  D.rm[a]={name:'Kopi bubuk',unit:'gr',stock:2000,cost:180,min:300};D.rm[b]={name:'Susu cair',unit:'ml',stock:5000,cost:20,min:1000};
