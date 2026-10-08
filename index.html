@@ -575,7 +575,13 @@ function deleteProduction(id){
   const hit=Object.entries(D.pr).find(([pid,v])=>String(v.name||'').trim().toLocaleLowerCase('id-ID')===String(x.name||'').trim().toLocaleLowerCase('id-ID'));
   if(hit){x.pid=hit[0];p=hit[1]}
  }
- if(!p)return toast('Produk "'+(x.name||'')+'" sudah tidak ditemukan. Buat kembali produk dengan nama yang sama agar stok bisa dikembalikan.','e');
+ if(!p){
+  if(!confirm('Produk "'+(x.name||'')+'" dari riwayat lama sudah tidak ada. Hapus riwayat ini saja? Karena produk dan stok hasil produksinya sudah tidak ada di data aktif, stok bahan/produk tidak akan diubah.'))return;
+  D.prod=D.prod.filter(t=>t.id!==id);
+  save();render();
+  toast('Riwayat produksi lama berhasil dibersihkan.');
+  return;
+ }
  const qty=+x.qty||0;
  if(qty<1)return toast('Jumlah produksi tidak valid.','e');
  if((p.stock||0)<qty)return toast('Produksi tidak bisa dihapus: stok produk jadi saat ini kurang dari jumlah produksi. Sebagian hasil produksi kemungkinan sudah terjual.','e');
